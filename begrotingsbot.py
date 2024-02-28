@@ -141,33 +141,26 @@ help_handler = CommandHandler('Help', help_command)
 
 async def terug_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in AUTHORIZED_USER_IDS:
-        bij_af_kolom = 0
-        prijs_kolom = 1
-        verwerkt_kolom = 3
-        naam_kolom = 4
+        totaal_sara = 0.0
+        totaal_oscar = 0.0
         async with aiofiles.open('begroting.csv', mode='r', encoding='utf-8') as begroting:
-            lezer = csv.reader(await begroting.read())
-            totaal_sara = 0
-            totaal_oscar = 0
-            if csv.Sniffer().has_header:
-                next(lezer)
-            for row in lezer:
-                if "False" in row:
-                    if "Sara" in row:
-                        float_prijs = float(row[prijs_kolom])
-                        totaal_sara = totaal_sara + float_prijs
-                    elif "Oscar" in row:
-                        float_prijs = float(row[prijs_kolom])
-                        totaal_oscar = totaal_oscar + float_prijs
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"Oscar moet nog €{totaal_oscar:.2f} terugkrijgen van de gezamelijke.\n\n"
-                 f"Sara moet nog €{totaal_sara:.2f} terugkrijgen van de gezamelijke."
-        )
+            # Skip the header
+            await begroting.readline()
+            async for line in begroting:
+                row = line.strip().split(',')
+                if row[3].lower() == "false":  # Check if 'verwerkt' is False
+                    prijs = float(row[1])
+                    if row[4].lower() == "sara":
+                        totaal_sara += prijs
+                    elif row[4].lower() == "oscar":
+                        totaal_oscar += prijs
+        
+        message = (f"Oscar moet nog €{totaal_oscar:.2f} terugkrijgen van de gezamelijke.\n\n"
+                   f"Sara moet nog €{totaal_sara:.2f} terugkrijgen van de gezamelijke.")
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
     else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="Jij woont niet bij ons. Opzouten!"
-        )
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Jij woont niet bij ons. Opzouten!")
+
 
 terug_handler = CommandHandler('Terug', terug_command)
 
